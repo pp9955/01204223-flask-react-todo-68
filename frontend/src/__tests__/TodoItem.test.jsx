@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent} from '@testing-library/react'
 import { expect } from 'vitest'
 import TodoItem from '../TodoItem.jsx'
+import userEvent from '@testing-library/user-event'
 
 const baseTodo = {             // ** TodoItem พื้นฐานสำหรับทดสอบ
   id: 1,
@@ -46,5 +47,47 @@ describe('TodoItem', () => {
       <TodoItem todo={todoWithComment} />
     );
     expect(screen.queryByText('No comments')).not.toBeInTheDocument();
+  });
+    it('makes callback to toggleDone when Toggle button is clicked', () => {
+    const onToggleDone = vi.fn();
+    render(
+      <TodoItem 
+       todo={baseTodo} 
+       toggleDone={onToggleDone} />
+    );
+    const button = screen.getByRole('button', { name: /toggle/i });
+    button.click();
+    expect(onToggleDone).toHaveBeenCalledWith(baseTodo.id);
+  });
+  it('makes callback to deleteTodo when delete button is clicked', () => {
+    const deleteTodo = vi.fn();
+    render(
+      <TodoItem 
+        todo={baseTodo} 
+        deleteTodo={deleteTodo} 
+      />
+    );
+    const deleteButton = screen.getByRole('button', { name: /❌/i });
+    deleteButton.click();
+    expect(deleteTodo).toHaveBeenCalledWith(baseTodo.id);
+  });
+  it('makes callback to addNewComment when a new comment is added', async () => {
+    const onAddNewComment = vi.fn();
+    render(
+      <TodoItem 
+        todo={baseTodo} 
+        addNewComment={onAddNewComment} 
+      />
+    );
+    // พิมพ์ข้อความลงใน textbox
+    const input = screen.getByRole('textbox');
+    await userEvent.type(input, 'New comment');
+
+    // กดปุ่ม: ในที่นี้เราใช้ fireEvent เพราะว่าระหว่างการอัพเดทจะมีการเปลี่ยน state ถ้าไม่ใช่จะมี warning
+    const button = screen.getByRole('button', { name: /add comment/i });
+    fireEvent.click(button);
+
+    // assert
+    expect(onAddNewComment).toHaveBeenCalledWith(baseTodo.id, 'New comment');
   });
 });
