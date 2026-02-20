@@ -19,7 +19,7 @@ describe('TodoItem', () => {
     expect(screen.getByText('Sample Todo')).toBeInTheDocument();
     expect(screen.getByText('No comments')).toBeInTheDocument();
   });
-    it('renders with comments correctly', () => {
+  it('renders with comments correctly', () => {
     const todoWithComment = {
       ...baseTodo,
       comments: [
@@ -35,8 +35,7 @@ describe('TodoItem', () => {
     expect(screen.getByText('Another comment')).toBeInTheDocument();
     expect(screen.getByText(/2/)).toBeInTheDocument();
   });
-
-    it('does not show no comments message when it has a comment', () => {
+  it('does not show no comments message when it has a comment', () => {
     const todoWithComment = {
       ...baseTodo,
       comments: [
@@ -48,7 +47,7 @@ describe('TodoItem', () => {
     );
     expect(screen.queryByText('No comments')).not.toBeInTheDocument();
   });
-    it('makes callback to toggleDone when Toggle button is clicked', () => {
+  it('makes callback to toggleDone when Toggle button is clicked', () => {
     const onToggleDone = vi.fn();
     render(
       <TodoItem 
