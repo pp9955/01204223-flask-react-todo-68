@@ -109,7 +109,6 @@ def create_user(username, full_name, password):
     click.echo(f"User {username} created successfully.")
 
 @app.route('/api/login/', methods=['POST'])
-@jwt_required()
 def login():
     data = request.get_json()
     if not data or 'username' not in data or 'password' not in data:
@@ -118,5 +117,6 @@ def login():
     user = User.query.filter_by(username=data['username']).first()
     if not user or not user.check_password(data['password']):
         return jsonify({'error': 'Invalid username or password'}), 401
+
     access_token = create_access_token(identity=user.username)
     return jsonify(access_token=access_token)
