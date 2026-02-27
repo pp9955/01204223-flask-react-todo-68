@@ -1,29 +1,27 @@
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from flask import Flask, request , jsonify
+#from flask_sqlalchemy import SQLAlchemy
+#from sqlalchemy.orm import DeclarativeBase
+#from sqlalchemy import Integer, String
+#from sqlalchemy.orm import Mapped, mapped_column
 from flask_cors import CORS
-from sqlalchemy.orm import Mapped, mapped_column
-from flask_migrate import Migrate                        # import library
-from sqlalchemy import Integer, String, ForeignKey                            # เพิ่ม import Foreignkey
-from sqlalchemy.orm import Mapped, mapped_column, relationship      
-from models import TodoItem, Comment, db ,User              # เพิ่ม import relatiohship
+#from sqlalchemy.orm import Mapped, mapped_column
+#from flask_migrate import Migrate  
+#from sqlalchemy import Integer, String, ForeignKey                            # เพิ่ม import Foreignkey
+#from sqlalchemy.orm import Mapped, mapped_column, relationship 
+from flask_migrate import Migrate
 import click
+from models import TodoItem, Comment, User, db
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_jwt_extended import JWTManager
-
-
 app = Flask(__name__)
 CORS(app)
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todos.db'
 app.config['JWT_SECRET_KEY'] = 'fdsjkfjioi2rjshr2345hrsh043j5oij5545'
 jwt = JWTManager(app)
 
-db.init_app(app)                                                     # แก้จาก db = SQLAlchemy(app, model_class=Base)
-migrate = Migrate(app, db)     
+db.init_app(app) 
 
+migrate = Migrate(app, db)
 todo_list = [
     { "id": 1,
       "title": 'Learn Flask',
@@ -32,6 +30,39 @@ todo_list = [
       "title": 'Build a Flask App',
       "done": False },
 ]
+'''class TodoItem(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(100))
+    done: Mapped[bool] = mapped_column(default=False)
+
+    ##### เพิ่มส่วน relationship  ซึ่งตรงนี้จะไม่กระทบ schema database เลย (เพราะว่าไม่มีการ map ไปยังคอลัมน์ใดๆ)
+    comments: Mapped[list["Comment"]] = relationship(back_populates="todo")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "done": self.done,
+            "comments": [
+                comment.to_dict() for comment in self.comments
+            ]
+        }
+
+class Comment(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    message: Mapped[str] = mapped_column(String(250))
+    todo_id: Mapped[int] = mapped_column(ForeignKey('todo_item.id'))
+
+    todo: Mapped["TodoItem"] = relationship(back_populates="comments")
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "message": self.message,
+            "todo_id": self.todo_id
+        }'''
+#with app.app_context():
+    #db.create_all()
+
 
 @app.route('/api/todos/', methods=['GET'])
 @jwt_required()
@@ -65,15 +96,16 @@ def toggle_todo(id):
     db.session.commit()
     return jsonify(todo.to_dict())
 
-
 @app.route('/api/todos/<int:id>/', methods=['DELETE'])
 @jwt_required()
 def delete_todo(id):
     todo = TodoItem.query.get_or_404(id)
+    Comment.query.filter_by(todo_id=id).delete()
+
     db.session.delete(todo)
     db.session.commit()
-    return jsonify({'message': 'Todo deleted successfully'})
 
+    return jsonify({'message': 'Todo deleted successfully'})
 @app.route('/api/todos/<int:todo_id>/comments/', methods=['POST'])
 @jwt_required()
 def add_comment(todo_id):
@@ -91,13 +123,11 @@ def add_comment(todo_id):
     db.session.commit()
  
     return jsonify(comment.to_dict())
-
 @app.cli.command("create-user")
 @click.argument("username")
 @click.argument("full_name")
 @click.argument("password")
 def create_user(username, full_name, password):
-    print(username, full_name, password)
     user = User.query.filter_by(username=username).first()
     if user:
         click.echo("User already exists.")

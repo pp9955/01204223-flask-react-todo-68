@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from './context/AuthContext.jsx';
 import './App.css'
+import { useAuth } from './context/AuthContext.jsx';
 
 import TodoItem from './TodoItem.jsx'
 
 function TodoList({apiUrl}) {
+  const { username, accessToken, logout } = useAuth();
   const TODOLIST_API_URL = apiUrl;
 
   const [todoList, setTodoList] = useState([]);
   const [newTitle, setNewTitle] = useState("");
-  const [newComments, setNewComments] = useState({});
-  const { username, accessToken, logout } = useAuth();
+
+   const [newComments, setNewComments] = useState({});
+
 
   useEffect(() => {
-  fetchTodoList();
-  },[username]); 
+    fetchTodoList();
+  }, [username]);  
 
   async function fetchTodoList() {
     try {
@@ -39,6 +41,9 @@ function TodoList({apiUrl}) {
     try {
       const response = await fetch(toggle_api_url, {
         method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
       })
       if (response.ok) {
         const updatedTodo = await response.json();
@@ -55,8 +60,9 @@ function TodoList({apiUrl}) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ 'title': newTitle }),
+        body: JSON.stringify({ title: newTitle }),
       });
       if (response.ok) {
         const newTodo = await response.json();
@@ -68,30 +74,15 @@ function TodoList({apiUrl}) {
     }
   }
 
-  async function addNewComment(todoId) {
-    try {
-      const url = `${TODOLIST_API_URL}${todoId}/comments/`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 'message': newComment }),
-      });
-      if (response.ok) {
-        await fetchTodoList();
-      }
-    } catch (error) {
-      console.error("Error adding new comment:", error);
-    }
-  }
-
   async function deleteTodo(id) {
     const delete_api_url = `${TODOLIST_API_URL}${id}/`
     try {
-      const response = await fetch(delete_api_url, {
-        method: 'DELETE',
-      });
+    const response = await fetch(delete_api_url, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
       if (response.ok) {
         setTodoList(todoList.filter(todo => todo.id !== id));
       }
@@ -99,34 +90,54 @@ function TodoList({apiUrl}) {
       console.error("Error deleting todo:", error);
     }
   }
-
+  async function addNewComment(todoId, newComment) {
+    try {
+      const url = `${TODOLIST_API_URL}${todoId}/comments/`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ 'message': newComment }), 
+      });
+      if (response.ok) {
+        
+        await fetchTodoList();
+      }
+    } catch (error) {
+      console.error("Error adding new comment:", error);
+    }
+  }
   return (
     <>
+    {username && <p>Welcome, {username}</p>}
       <h1>Todo List</h1>
       <ul>
-         {todoList.map(todo => (
+        {todoList.map(todo => (
           <TodoItem 
             key={todo.id} 
             todo={todo}
             toggleDone={toggleDone}
             deleteTodo={deleteTodo}
             addNewComment={addNewComment}
+            setNewComments={setNewComments}
           />
         ))}
       </ul>
       New: <input type="text" value={newTitle} onChange={(e) => {setNewTitle(e.target.value)}} />
       <button onClick={() => {addNewTodo()}}>Add</button>
-      
-      <br/>
+        <br/>
       <a href="/about">About</a>
-      <br/>
-       {username && (
+        <br/>
+      {username && (
         <a href="#" onClick={(e) => {e.preventDefault(); logout();}}>Logout</a> 
       )}
       <br/>
-      <a href="/login">Login</a>
+      
+      <a href="/login">Login</a> 
     </>
   )
 }
 
-export default TodoList;    // อย่าลืมแก้ export
+export default TodoList;

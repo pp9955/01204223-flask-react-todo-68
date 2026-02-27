@@ -1,32 +1,46 @@
 import { vi } from 'vitest'
-
 vi.mock('/vite.svg', () => ({
   default: 'vite-logo',
 }));
 
-import { render,screen } from '@testing-library/react'
-import App from '../App.jsx'
+import { render, screen } from '@testing-library/react'
+import TodoList from '../TodoList.jsx'
 
 const mockResponse = (body, ok = true) =>
   Promise.resolve({
     ok,
     json: () => Promise.resolve(body),
-});
+  });
 
 const todoItem1 = { id: 1, title: 'First todo', done: false, comments: [] };
-const todoItem2 = { id: 2, title: 'Second todo', done: false, comments: [
-  { id: 1, message: 'First comment' },
-  { id: 2, message: 'Second comment' },
-] };
+
+const todoItem2 = { 
+  id: 2, 
+  title: 'Second todo', 
+  done: false, 
+  comments: [
+    { id: 1, message: 'First comment' },
+    { id: 2, message: 'Second comment' },
+  ] 
+};
 
 const originalTodoList = [
   todoItem1,
   todoItem2,
-]
+];
+vi.mock('../context/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
 
-describe('App', () => {
+import { useAuth } from '../context/AuthContext';
+describe('TodoList', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
+    useAuth.mockReturnValue({
+      username: 'testuser',
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
   });
 
   afterEach(() => {
@@ -39,15 +53,14 @@ describe('App', () => {
       mockResponse(originalTodoList)
     );
 
-    render(<App />);
-
+    render(<TodoList />);
+    
     expect(await screen.findByText('First todo')).toBeInTheDocument();
     expect(await screen.findByText('Second todo')).toBeInTheDocument();
     expect(await screen.findByText('First comment')).toBeInTheDocument();
     expect(await screen.findByText('Second comment')).toBeInTheDocument();
   });
-
-  it('toggles done on a todo item', async() => {
+    it('toggles done on a todo item', async() => {
     // เตรียมค่าสำหรับคืนหลังกด toggle done แล้ว
     const toggledTodoItem1 = { ...todoItem1, done: true };
 
@@ -58,7 +71,7 @@ describe('App', () => {
       .mockImplementationOnce(() => mockResponse(originalTodoList))    
       .mockImplementationOnce(() => mockResponse(toggledTodoItem1));
 
-    render(<App />);
+    render(<TodoList />);
 
     // assert ก่อนว่าของเดิม todo item แรกไม่ได้มีคลาส done
     expect(await screen.findByText('First todo')).not.toHaveClass('done');
