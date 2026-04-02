@@ -80,9 +80,9 @@ def add_todo():
     data = request.get_json()
     todo = new_todo(data)
     if todo:
-        db.session.add(todo)                       # บรรทัดที่ปรับใหม่
-        db.session.commit()                        # บรรทัดที่ปรับใหม่ 
-        return jsonify(todo.to_dict())             # บรรทัดที่ปรับใหม่
+        db.session.add(todo)
+        db.session.commit()
+        return jsonify(todo.to_dict())
     else:
         # return http response code 400 for bad requests
         return (jsonify({'error': 'Invalid todo data'}), 400)
