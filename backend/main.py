@@ -8,13 +8,19 @@ from flask_jwt_extended import JWTManager
 app = Flask(__name__)
 import os
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI','sqlite:///todos.db')
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY','fdslkfjsdlkufewhjroiewurewrew')
+try:
+    from local_config import CONFIG_DB_URI, CONFIG_JWT_SECRET
+except:
+    CONFIG_DB_URI = 'sqlite:///todos.db'
+    CONFIG_JWT_SECRET = 'fdslkfjsdlkufewhjroiewurewrew'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', CONFIG_DB_URI)
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', CONFIG_JWT_SECRET)
 jwt = JWTManager(app)
 
 db.init_app(app) 
-
 migrate = Migrate(app, db)
+
 todo_list = [
     { "id": 1,
       "title": 'Learn Flask',
@@ -23,39 +29,6 @@ todo_list = [
       "title": 'Build a Flask App',
       "done": False },
 ]
-'''class TodoItem(db.Model):
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    title: Mapped[str] = mapped_column(String(100))
-    done: Mapped[bool] = mapped_column(default=False)
-
-    ##### เพิ่มส่วน relationship  ซึ่งตรงนี้จะไม่กระทบ schema database เลย (เพราะว่าไม่มีการ map ไปยังคอลัมน์ใดๆ)
-    comments: Mapped[list["Comment"]] = relationship(back_populates="todo")
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "title": self.title,
-            "done": self.done,
-            "comments": [
-                comment.to_dict() for comment in self.comments
-            ]
-        }
-
-class Comment(db.Model):
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    message: Mapped[str] = mapped_column(String(250))
-    todo_id: Mapped[int] = mapped_column(ForeignKey('todo_item.id'))
-
-    todo: Mapped["TodoItem"] = relationship(back_populates="comments")
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "message": self.message,
-            "todo_id": self.todo_id
-        }'''
-#with app.app_context():
-    #db.create_all()
-
 
 @app.route('/api/todos/', methods=['GET'])
 @jwt_required()
@@ -143,3 +116,20 @@ def login():
 
     access_token = create_access_token(identity=user.username)
     return jsonify(access_token=access_token)
+
+from flask import send_from_directory
+
+# Catch-all route: if the requested file exists in frontend-static, serve it;
+# otherwise fall back to serving the React app's index.html.
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    static_dir = os.path.join(app.root_path, 'frontend-static')
+    # If a specific file is requested and exists, serve it
+    if path and os.path.isfile(os.path.join(static_dir, path)):
+        return send_from_directory('frontend-static', path)
+    # Otherwise serve the app entrypoint
+    return send_from_directory('frontend-static', 'index.html')
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
