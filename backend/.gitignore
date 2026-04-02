@@ -1,3 +1,5 @@
 /venv
 __pycache__
 /instance
+node_modules/
+backend/node_modules/
